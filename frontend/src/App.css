@@ -1,0 +1,102 @@
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+header {
+  margin-bottom: 2rem;
+}
+
+header h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+}
+
+header p {
+  margin: 0;
+  color: #9aa0a6;
+}
+
+.card {
+  background: #1a2332;
+  border: 1px solid #2d3a4d;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+form.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+label {
+  font-weight: 600;
+}
+
+input {
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #3d4f66;
+  background: #0f1419;
+  color: inherit;
+  font-size: 1rem;
+}
+
+button {
+  padding: 0.65rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #4a9eff;
+  color: #0f1419;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.results {
+  display: grid;
+  gap: 1rem;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+
+dt {
+  color: #9aa0a6;
+}
+
+dd {
+  margin: 0;
+}
+
+.error {
+  border-color: #c44;
+}
+
+.error h2 {
+  margin-top: 0;
+  color: #f88;
+}
+
+.hint {
+  color: #9aa0a6;
+  font-size: 0.9rem;
+}
+
+code {
+  background: #0f1419;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
