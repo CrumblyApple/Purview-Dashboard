@@ -85,17 +85,53 @@ def _fetch_sdmx_json(client: httpx.Client, url: str, params: dict) -> dict[str, 
 
 # Parse sdmx-json into dataframe
 '''
-    The json divides into two main sections:
-        'structure'
-        'datasets': an array of 'series'
-            Each series has an index
+    The json data divides into two main sections:
+        'structure': {
+            'dimensions': {
+                'series': [             dimension lookup tables (we expect only [2] (ASGS) to vary)
+                'observation': [        time dimension lookup tables (ie [1] = 2021, [2] = 2022 ...)
+        'datasets': [
+            'series': {
+                '0:0:14:0': {           series key
+                    'observations': {
+                        0: [4539.0]     observation key - [value]
+                        1: [6827.0]
+
+    Convert into dataframe:
+        measure     region-type     sa2-code    freq    year    value
 '''
 def _parse_sdmx_json(payload: dict) -> pd.DataFrame:
     structure = payload["structure"]
+    series_dims = structure["dimensions"]["series"]
+    observation_dims = structure["dimensions"]["observation"]
+    dataset = payload["dataSets"][0]["series"]
 
+    # Lookups: flatten 'id' into an indexable 2d array [dimension][index]
+    series_lookups = [[v["id"] for v in dim["values"]] for dim in series_dims]
+    observation_lookups = [[v["id"] for v in dim["values"]] for dim in observation_dims]
 
+    series_names = [dim["id"] for dim in series_dims]
+    observation_names = [dim["id"] for dim in observation_dims]
 
-
+    rows: list[dict] = []
+    for series_key, series_data in dataset.items():
+        # series_key: "0:2:14:0" (indices for each series dimension)
+        s_indices = [int(i) for i in series_key.split(":")]
+        s_values = {
+            series_names[i]: series_lookups[i][s_indices[i]] for i in range(len(series_names))
+        }
+ 
+        for o_key, o_data in series_data["observations"].items():
+            o_indices = [int(i) for i in o_key.split(":")]
+            o_values = {
+                observation_names[i]: observation_lookups[i][o_indices[i]]
+                for i in range(len(observation_names))
+            }
+ 
+            value = o_data[0]  # first element is the primary value
+            rows.append({**s_values, **o_values, "value": value})
+ 
+    return pd.DataFrame(rows)
 
 # Determine most recent ABS release date (none if not exposed)
 def _abs_release_date(client: httpx.Client, dataflow: str) -> date | None:
@@ -177,7 +213,8 @@ class ABSClient:
         time.sleep(self._delay)
         payload = _fetch_sdmx_json(self._http, url, params)
  
-        df = _parse_sdmx_json(payload)
+        df = _parse_sdmx_json(payload["data"])
+        df.to_csv('data/raw/abs_cache/erp.csv', index=False)
         df.to_parquet(cache_file, index=False)
         log.info(
             "Cached %d rows -> %s", len(df), cache_file.name
