@@ -1,6 +1,6 @@
 '''
 This module is used to ingest data from the ABS API.
-ABS DataAPI base: https://data.api.abs.gov.au
+ABS DataAPI base: https://data.api.abs.gov.au/rest
 API Documentation: https://www.abs.gov.au/about/data-services/application-programming-interfaces-apis/data-api-user-guide
 
 SA2 SDMX-JSON | Datasets:
