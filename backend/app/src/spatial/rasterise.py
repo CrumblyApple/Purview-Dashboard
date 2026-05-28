@@ -180,3 +180,44 @@ def rasterise_all_years(
         path = rasterise_stat(subset, target_col, out_name, grid=grid)
         results[int(year)] = path
     return results
+
+YEAR = "2025"
+
+if __name__ == "__main__":
+    import sys
+    from . import gpkg_join as joiner
+    from ..ingest.abs_ingest import ABSClient
+    #   sys.path.append("..")
+
+    #   from ingest import ABSClient
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+ 
+    with ABSClient() as client:
+        erp = client.fetch("erp_sa2")
+
+    erp = erp[["ASGS_2021", "TIME_PERIOD", "value"]]
+ 
+    log.info("ERP years available: %s", sorted(erp["TIME_PERIOD"].unique()))
+ 
+    # Filter to target year
+    erp_year = erp[erp["TIME_PERIOD"] == YEAR].copy()
+    log.info("Rows for %s: %d", YEAR, len(erp_year))
+ 
+    # Join to SA2 boundaries
+    gdf = joiner.join_cross_section(
+        erp_year,
+        "erp",
+        value_col="value"
+    )
+    log.info("Joined GeoDataFrame: %d rows, columns: %s", len(gdf), list(gdf.columns))
+ 
+    log.info(gdf[gdf["value"] < 100].sort_values("value")[["SA2_CODE_2021", "value"]].head(20))
+
+    # 5. Rasterise
+    out_path = rasterise_stat(
+        gdf,
+        target_col="value",
+        out_name=f"erp_sa2_{YEAR}",
+    )
+    log.info("Done → %s", out_path)

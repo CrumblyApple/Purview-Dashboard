@@ -17,7 +17,7 @@ GPKG_PATH = Path("data/raw/asgs_3/ASGS_2021_Main_Structure_GDA2020.gpkg")
 # TODO: migrate out
 STAT_CONFIG: dict[str, dict] = {
     "erp": {
-        "geography":   "sa2",
+        "geography": "sa2",
         "df_code_col": "ASGS_2021",
     },
 }
@@ -27,7 +27,7 @@ STAT_CONFIG: dict[str, dict] = {
 GEOGRAPHY_META: dict[str, dict] = {
     "sa2": {
         "layer_patterns": ["SA2_2021", "SA2_2021_AUST"],
-        "code_patterns":  ["SA2_CODE_2021", "SA2_CODE21", "SA2_MAINCODE_2021"],
+        "code_patterns": ["SA2_CODE_2021", "SA2_CODE21", "SA2_MAINCODE_2021"],
     },
 }
 
@@ -101,7 +101,7 @@ def load_boundaries(
 # MUST BE A SINGLE CROSS-SECTION : NO TIME SERIES
 # Data is NaN when there is a boundary polygon with no associated data
 def join_cross_section(
-    df: pd.Dataframe,
+    df: pd.DataFrame,
     stat: str,          # TODO: make ENUM
     value_col: str,     # Column containing actual data that we want to keep
     gpkg_path: Path = GPKG_PATH,
