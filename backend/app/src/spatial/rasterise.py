@@ -187,9 +187,6 @@ if __name__ == "__main__":
     import sys
     from . import gpkg_join as joiner
     from ..ingest.abs_ingest import ABSClient
-    #   sys.path.append("..")
-
-    #   from ingest import ABSClient
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
  
@@ -204,7 +201,7 @@ if __name__ == "__main__":
     erp_year = erp[erp["TIME_PERIOD"] == YEAR].copy()
     log.info("Rows for %s: %d", YEAR, len(erp_year))
  
-    # Join to SA2 boundaries
+    # Join + rasterise
     gdf = joiner.join_cross_section(
         erp_year,
         "erp",
@@ -212,9 +209,6 @@ if __name__ == "__main__":
     )
     log.info("Joined GeoDataFrame: %d rows, columns: %s", len(gdf), list(gdf.columns))
  
-    log.info(gdf[gdf["value"] < 100].sort_values("value")[["SA2_CODE_2021", "value"]].head(20))
-
-    # 5. Rasterise
     out_path = rasterise_stat(
         gdf,
         target_col="value",

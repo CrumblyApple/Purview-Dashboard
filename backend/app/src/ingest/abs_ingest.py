@@ -214,7 +214,11 @@ class ABSClient:
         payload = _fetch_sdmx_json(self._http, url, params)
  
         df = _parse_sdmx_json(payload["data"])
+
+        ###################################################
         df.to_csv('data/raw/abs_cache/erp.csv', index=False)
+        ###################################################
+
         df.to_parquet(cache_file, index=False)
         log.info(
             "Cached %d rows -> %s", len(df), cache_file.name
