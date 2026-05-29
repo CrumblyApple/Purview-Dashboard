@@ -18,9 +18,6 @@ EXCLUDED_CODES = ["STL", "LOC"]
 KEEP_COLS = ["ADDRESS_DETAIL_PID", "LATITUDE", "LONGITUDE", "GEOCODE_TYPE_CODE", "CONFIDENCE"]
 
 def convert(raw_dir: Path = GNAF_RAW_DIR) -> pd.DataFrame:
-    if GNAF_OUT.exists():
-        return pd.read_parquet(GNAF_OUT)
-
     zips = list(raw_dir.rglob("*.zip"))
     if not zips: raise FileNotFoundError(f"No zip file found under {raw_dir}.")
     zip_path = zips[0]
@@ -50,7 +47,11 @@ def convert(raw_dir: Path = GNAF_RAW_DIR) -> pd.DataFrame:
                 how="inner",
             )
 
-            merged = merged[(merged["ALIAS_PRINCIPAL"] == "P") & ~merged["GEOCODE_TYPE_CODE"].isin(EXCLUDED_CODES)][KEEP_COLS].copy()
+            merged = merged[
+                (merged["ALIAS_PRINCIPAL"] == "P") & 
+                ~merged["GEOCODE_TYPE_CODE"].isin(EXCLUDED_CODES) &
+                (merged["CONFIDENCE"].astype(int) >= 0)
+            ][KEEP_COLS].copy()
             merged["LATITUDE"]  = pd.to_numeric(merged["LATITUDE"],  errors="coerce")
             merged["LONGITUDE"] = pd.to_numeric(merged["LONGITUDE"], errors="coerce")
             merged = merged.dropna(subset=["LATITUDE", "LONGITUDE"])
