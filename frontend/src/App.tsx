@@ -2,12 +2,21 @@ import { FormEvent, useState } from "react";
 import { api, HealthResponse } from "./api/client";
 import "./App.css";
 
+import { useTiles } from "./hooks/UseTiles";
+import { useIndicatorState } from "./hooks/UseZState";
+import MapView from "./components/MapRenderer";
+import LayerPanel from "./components/LayerPanel";
+import InspectPanel from "./components/InspectPanel";
+
 export default function App() {
   const [name, setName] = useState("Purview");
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [greeting, setGreeting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const { cogUrl }         = useTiles();
+  const { setClickedPixel, opacity } = useIndicatorState();
 
   async function checkApi(event?: FormEvent) {
     event?.preventDefault();
@@ -49,6 +58,16 @@ export default function App() {
           {loading ? "Checking…" : "Test API connection"}
         </button>
       </form>
+
+      <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
+      <MapView
+        cogUrl={cogUrl}
+        opacity={opacity}
+        onPixelClick={setClickedPixel}
+      />
+      <LayerPanel />
+      <InspectPanel/>
+      </div>
 
       {error && (
         <section className="card error" role="alert">
