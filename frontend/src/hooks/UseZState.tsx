@@ -25,7 +25,7 @@ interface State {
 
 export const useIndicatorState = create<State>((set) => ({
   activeIndicator: Object.keys(INDICATORS)[0] as IndicatorSlug,
-  activeYear: YEARS[YEARS.length - 1],
+  activeYear: '2025',
   opacity: 0.85,
   clickedPixel: null,
  

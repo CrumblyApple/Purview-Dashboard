@@ -151,7 +151,7 @@ function IndicatorButton({
       aria-pressed={active}
       aria-label={`Select ${meta.label} indicator`}
     >
-      <span style={styles.indicatorDot(meta.colourmap)} />
+      {/*<span style={styles.indicatorDot(meta.colourmap)} />*/}
       <span style={styles.indicatorLabel(active)}>{meta.label}</span>
       <span style={styles.indicatorUnit}>{meta.unit}</span>
     </button>

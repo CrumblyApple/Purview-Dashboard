@@ -4,10 +4,9 @@ import { TileLayer } from "@deck.gl/geo-layers";
 import type { GeoBoundingBox } from "@deck.gl/geo-layers/";
 import { BitmapLayer } from "@deck.gl/layers";
 import type { MapViewState, PickingInfo } from "@deck.gl/core";
-import { Map } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-import { IndicatorSlug, Year, INDICATORS, DEFAULT_COLOURMAP } from "../config/Indicators";
+import { IndicatorSlug } from "../config/Indicators";
 
 export interface PixelClickInfo {
   lat: number;
@@ -17,15 +16,17 @@ export interface PixelClickInfo {
 }
 
 interface MapViewProps {
-  cogUrl: string | null;
+  tileUrl: string | null;
+  minZoom?: number;
+  maxZoom?: number;
   indicator?: IndicatorSlug;
   opacity?: number;
   onPixelClick?: (info: PixelClickInfo) => void;
 }
 
 const INIT_VIEW = {
-  longitude: 134.5,
-  latitude: -25.5,
+  longitude: 133.0,
+  latitude: -27.0,
   zoom: 4,
   pitch: 0,
   bearing: 0,
@@ -34,35 +35,29 @@ const INIT_VIEW = {
 const BASEMAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json";
 const LABELS_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
-const TILE_URL_TEMPLATE = (cogUrl: string, colourmap: string) =>
-    `/api/cog/tiles/{z}/{x}/{y}?url=${encodeURIComponent(cogUrl)}`
-    + `&colormap_name=${colourmap}`
-    + `&rescale=0,100`
-    + `&return_mask=true`;
-
 export default function MapView({
-  cogUrl,
+  tileUrl,
+  minZoom = 0,
+  maxZoom = 9,
   indicator = "erp",
   opacity = 0.85,
-  onPixelClick
+  onPixelClick,
 }: MapViewProps) {
   const [viewState, setViewState] = useState<MapViewState>(INIT_VIEW);
- 
+
   const tileLayer = useMemo(() => {
-    if (!cogUrl) return null;
- 
-    const colourmap = INDICATORS[indicator]["colourmap"] ?? DEFAULT_COLOURMAP;
-    const tileUrl   = TILE_URL_TEMPLATE(cogUrl, colourmap);
- 
+    if (!tileUrl) return null;
+
     return new TileLayer({
       id: `indicator-tiles-${indicator}`,
       data: tileUrl,
- 
+
+      extent: [112.9, -43.7, 153.7, -9.9],
+
       tileSize: 256,
-      minZoom: 0,
-      maxZoom: 14,
- 
-      // Render each tile as a bitmap
+      minZoom,
+      maxZoom,
+
       renderSubLayers: (props) => {
         const { west, south, east, north } = props.tile.bbox as GeoBoundingBox;
         return new BitmapLayer(props, {
@@ -70,18 +65,21 @@ export default function MapView({
           image: props.data,
           bounds: [west, south, east, north],
           opacity,
-          transparentColor: [0, 0, 0, 0]
+          transparentColor: [0, 0, 0, 0],
+          textureParameters: {
+            minFilter:  "nearest",
+            magFilter:  "nearest",
+          },
         });
       },
- 
-      // Show previous tiles while new ones load to prevent flickering
+
       refinementStrategy: "best-available",
- 
+
       onTileError: (err) => {
         console.warn("Tile load error:", err);
       },
     });
-  }, [cogUrl, indicator, opacity]);
+  }, [tileUrl, indicator, opacity, minZoom, maxZoom]);
 
   const handleClick = useCallback(
     (info: PickingInfo) => {
@@ -89,12 +87,14 @@ export default function MapView({
       const [lon, lat] = info.coordinate as [number, number];
       onPixelClick({ lat, lon, x: info.x, y: info.y });
     },
-  [onPixelClick]);
+    [onPixelClick],
+  );
 
   const getCursor = useCallback(
     ({ isDragging }: { isDragging: boolean }): string =>
       isDragging ? "grabbing" : "crosshair",
-  []);
+    [],
+  );
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
@@ -109,14 +109,13 @@ export default function MapView({
         getCursor={getCursor}
         style={{ position: "absolute", inset: "0" }}
       >
-        <Map
+        {/*<Map
           reuseMaps
           mapStyle={BASEMAP_STYLE}
           attributionControl={false}
-        />
+        />*/}
       </DeckGL>
- 
-      {/* Labels overlay — pointer events disabled so clicks pass through */}
+
       <div
         style={{
           position: "absolute",
@@ -124,13 +123,13 @@ export default function MapView({
           pointerEvents: "none",
         }}
       >
-        <Map
+        {/*<Map
           reuseMaps
           mapStyle={LABELS_STYLE}
           viewState={viewState}
           attributionControl={false}
           style={{ width: "100%", height: "100%" }}
-        />
+        />*/}
       </div>
     </div>
   );

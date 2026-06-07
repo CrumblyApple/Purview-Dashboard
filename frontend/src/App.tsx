@@ -15,7 +15,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { cogUrl }         = useTiles();
+  const { tileUrl, minZoom, maxZoom } = useTiles();
   const { setClickedPixel, opacity } = useIndicatorState();
 
   async function checkApi(event?: FormEvent) {
@@ -61,7 +61,9 @@ export default function App() {
 
       <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
       <MapView
-        cogUrl={cogUrl}
+        tileUrl={tileUrl}
+        minZoom={minZoom}
+        maxZoom={maxZoom}
         opacity={opacity}
         onPixelClick={setClickedPixel}
       />

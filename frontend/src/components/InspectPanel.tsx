@@ -253,7 +253,7 @@ function MetricRow({
   const meta = INDICATORS[slug];
   return (
     <div style={styles.metricRow(active)}>
-      <span style={styles.metricDot(meta.colourmap)} />
+      {/*<span style={styles.metricDot(meta.colourmap)} />*/}
       <span style={styles.metricLabel(active)}>{meta.label}</span>
       <span style={styles.metricValue(active)}>
         {formatValue(value, slug)}
