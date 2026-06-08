@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import DeckGL from "@deck.gl/react";
 import { TileLayer } from "@deck.gl/geo-layers";
 import type { GeoBoundingBox } from "@deck.gl/geo-layers/";
@@ -44,6 +44,30 @@ export default function MapView({
   onPixelClick,
 }: MapViewProps) {
   const [viewState, setViewState] = useState<MapViewState>(INIT_VIEW);
+
+  useEffect(() => {
+    if (!tileUrl) return;
+
+    // Australia bounds at Z4 map to x: 13-14, y: 8-9
+    const cacheCoordinates = [
+      { z: 4, x: 13, y: 8 },
+      { z: 4, x: 14, y: 8 },
+      { z: 4, x: 13, y: 9 },
+      { z: 4, x: 14, y: 9 },
+    ];
+
+    cacheCoordinates.forEach(({ z, x, y }) => {
+      // Replace deck.gl format variables with actual numbers
+      const targetUrl = tileUrl
+        .replace("{z}", z.toString())
+        .replace("{x}", x.toString())
+        .replace("{y}", y.toString());
+
+      // Silently pre-fetch and cache via browser image handling
+      const img = new Image();
+      img.src = targetUrl;
+    });
+  }, [tileUrl]);
 
   const tileLayer = useMemo(() => {
     if (!tileUrl) return null;
@@ -103,7 +127,14 @@ export default function MapView({
         onViewStateChange={({ viewState: vs }) =>
           setViewState(vs as MapViewState)
         }
-        controller={true}
+        controller={{
+          scrollZoom: {
+            smooth: false,
+            speed: 0.005
+          },
+          dragPan: true,
+          inertia: 250
+        }}
         layers={tileLayer ? [tileLayer] : []}
         onClick={handleClick}
         getCursor={getCursor}

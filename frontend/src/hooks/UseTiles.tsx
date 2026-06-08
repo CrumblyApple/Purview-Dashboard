@@ -34,25 +34,14 @@ export function useTiles(): TilesResult {
       .catch(() => setDataset(null));
   }, [activeIndicator, activeYear]);
 
-  const useLogScale = INDICATORS[activeIndicator].type === "count";
-
   const tileUrl = useMemo(() => {
     if (!dataset) return null;
     const [rmin, rmax] = dataset.rescale;
 
-    // Log scale parameters that are log-normally distributed (typically counts)
-    const expression = useLogScale ? `log1p(b1)` : "";
-    const logMin = useLogScale ? Math.log1p(rmin) : rmin;
-    const logMax = useLogScale ? Math.log1p(rmax) : rmax;
-
-    return (
-      `/api/cog/tiles/WebMercatorQuad/{z}/{x}/{y}` +
-      `?url=${encodeURIComponent(dataset.path)}` +
-      `&expression=${expression}` +
-      `&colormap_name=${activeIndicator}` +
-      `&rescale=${logMin},${logMax}` +
-      `&return_mask=true`
-    );
+    const base   = `/api/tiles/${activeIndicator}/${activeYear}`;
+    const params = `rescale=${rmin},${rmax}`;
+  
+    return `${base}/{z}/{x}/{y}?${params}`;
   }, [dataset, colourmap]);
 
   return {
