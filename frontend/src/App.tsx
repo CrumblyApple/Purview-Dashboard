@@ -16,7 +16,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
 
   const { tileUrl, minZoom, maxZoom } = useTiles();
-  const { setClickedPixel, opacity } = useIndicatorState();
+  const { setClickedPixel } = useIndicatorState();
 
   async function checkApi(event?: FormEvent) {
     event?.preventDefault();
@@ -40,13 +40,20 @@ export default function App() {
   }
 
   return (
-    <main className="app">
+    <main className="app" style={{
+      display:        "flex",
+      flexDirection:  "column",
+      alignItems:     "center",
+      justifyContent: "center",
+      width:          "100%",
+      height:         "100%",
+    }}>
       <header>
-        <h1>Purview Dashboard</h1>
-        <p>React frontend with FastAPI REST backend</p>
+        <h1>PURVIEW</h1>
+        <p>GEOSPATIAL DASHBOARD</p>
       </header>
 
-      <form className="card" onSubmit={checkApi}>
+      {/*<form className="card" onSubmit={checkApi}>
         <label htmlFor="name">Name for greeting</label>
         <input
           id="name"
@@ -57,18 +64,36 @@ export default function App() {
         <button type="submit" disabled={loading}>
           {loading ? "Checking…" : "Test API connection"}
         </button>
-      </form>
+      </form>*/}
+      <div style={{
+        display: "flex",
+        gap: "16px"
+      }}>
+        <div style={{ 
+          width: "60vw", 
+          height: "75vh", 
+          position: "relative", 
+          background: "#c8cccf",
+          border: "4px solid #c8cccf",
+          borderRadius: 4,
+        }}>
+          <MapView
+            tileUrl={tileUrl}
+            minZoom={minZoom}
+            maxZoom={maxZoom}
+            onPixelClick={setClickedPixel}
+          />
+          <InspectPanel/>
+        </div>
 
-      <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
-      <MapView
-        tileUrl={tileUrl}
-        minZoom={minZoom}
-        maxZoom={maxZoom}
-        opacity={opacity}
-        onPixelClick={setClickedPixel}
-      />
-      <LayerPanel />
-      <InspectPanel/>
+        <div style={{ 
+          width: "15vw", 
+          height: "75vh", 
+          position: "relative", 
+          borderRadius: 4,
+        }}>
+          <LayerPanel/>
+        </div>
       </div>
 
       {error && (

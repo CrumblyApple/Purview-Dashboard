@@ -1,6 +1,7 @@
 '''
     Converts a GNAF file into a parquet
 '''
+import sys
 import logging
 import zipfile
 from pathlib import Path
@@ -11,14 +12,14 @@ log = logging.getLogger(__name__)
 
 # Point this at wherever you extracted the GNAF zip
 GNAF_RAW_DIR = Path("data/raw/gnaf/raw")
-GNAF_OUT     = Path("data/raw/gnaf/gnaf_core.parquet")
+GNAF_OUT     = Path("data/raw/gnaf/")
 
 STATES = ["ACT", "NSW", "NT", "OT", "QLD", "SA", "TAS", "VIC", "WA"]
 EXCLUDED_CODES = ["STL", "LOC"]
 KEEP_COLS = ["ADDRESS_DETAIL_PID", "LATITUDE", "LONGITUDE", "GEOCODE_TYPE_CODE", "CONFIDENCE"]
 
-def convert(raw_dir: Path = GNAF_RAW_DIR) -> pd.DataFrame:
-    zips = list(raw_dir.rglob("*.zip"))
+def convert(year: int, raw_dir: Path = GNAF_RAW_DIR) -> pd.DataFrame:
+    zips = list(raw_dir.rglob(f"g-naf_*{year}_*.zip"))
     if not zips: raise FileNotFoundError(f"No zip file found under {raw_dir}.")
     zip_path = zips[0]
     log.info("Reading GNAF from %s", zip_path.name)
@@ -65,13 +66,17 @@ def convert(raw_dir: Path = GNAF_RAW_DIR) -> pd.DataFrame:
     GNAF_OUT.parent.mkdir(parents=True, exist_ok=True)
 
     ###################################################
-    df.to_csv('data/raw/gnaf/gnaf.csv', index=False)
+    df.to_csv(f"data/raw/gnaf/gnaf_20{year}.csv", index=False)
     ###################################################
 
-    df.to_parquet(GNAF_OUT, index=False)
+    df.to_parquet(GNAF_OUT / f"gnaf_core_20{year}.parquet", index=False)
     return df
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
- 
-    convert(GNAF_RAW_DIR)
+    
+    if len(sys.argv) < 2:
+        print("Error: provide target year.")
+        sys.exit(0)
+
+    convert(sys.argv[1], GNAF_RAW_DIR)

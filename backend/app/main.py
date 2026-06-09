@@ -60,13 +60,14 @@ def _rescale_range(indicator: str, b1) -> tuple[float, float]:
     return 0.0, raw_max
 
 # ENDPOINTS
+'''
 @app.middleware("http")
 async def add_aggressive_tile_caching(request: Request, call_next):
     response = await call_next(request)
     if ("/tiles" in request.url.path or "/preview" in request.url.path) and (response.status_code == 200):
         response.headers["Cache-Control"] = "public, max-age=86400, immutable" # 1 day cache
     return response
-
+'''
 @app.get("/api/cog/datasets/{indicator}/{year}")
 async def cog_dataset(indicator: str, year: str) -> dict:
     cog_path = _resolve_cog_path(indicator, year)

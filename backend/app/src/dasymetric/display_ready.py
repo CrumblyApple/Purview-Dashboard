@@ -1,3 +1,5 @@
+# Helper: deprecated
+
 import logging
 from pathlib import Path
  
@@ -9,8 +11,12 @@ OUTPUT_DIR = Path("data/outputs/rasters/dasymetric")
 if __name__ == "__main__":
     import sys
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
- 
-    with rasterio.open(f"{OUTPUT_DIR}/erp_weighted_2025.tif") as src:
+    if len(sys.argv) < 2:
+        print("Error: provide target year.")
+        sys.exit(0)
+    year = sys.argv[1]
+
+    with rasterio.open(f"{OUTPUT_DIR}/erp_weighted_20{year}.tif") as src:
         data = src.read(1).astype(np.float32)
         profile = src.profile
 
@@ -23,5 +29,5 @@ if __name__ == "__main__":
     display = np.nan_to_num(display, nan=0).astype(np.uint8)
 
     profile.update(dtype="uint8", nodata=0)
-    with rasterio.open(f"{OUTPUT_DIR}/erp_weighted_2025_preview.tif", "w", **profile) as dst:
+    with rasterio.open(f"{OUTPUT_DIR}/erp_weighted_20{year}_preview.tif", "w", **profile) as dst:
         dst.write(display, 1)

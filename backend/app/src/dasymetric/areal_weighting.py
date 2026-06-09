@@ -16,8 +16,8 @@ log = logging.getLogger(__name__)
 OUTPUT_DIR = Path("data/outputs/rasters/dasymetric")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
  
-WEIGHTS_PATH = Path("data/outputs/masks/sa2_weighted_mask.tif")
-EXCLUSION_PATH = Path("data/outputs/masks/binary_mask.tif")
+WEIGHTS_PATH = Path("data/outputs/masks")
+EXCLUSION_PATH = Path("data/outputs/masks")
 
 def _load_raster(path: Path) -> np.ndarray:
     with rasterio.open(path) as src:
@@ -90,14 +90,15 @@ def compute_weighting(
     weights_path: Path = WEIGHTS_PATH,
     exclusion_path: Path = EXCLUSION_PATH,
     grid: GridDef = NATIONAL_GRID,
+    year: int = 25,
     nodata: float = np.nan,
     check_conservation: bool = True
 ) -> np.ndarray:
-    for p in (weights_path, exclusion_path):
+    for p in (weights_path / f"sa2_weighted_mask_20{year}.tif", exclusion_path / f"binary_mask_20{year}.tif"):
         if not p.exists(): raise FileNotFoundError(f"{p} not found.")
  
-    weights = _load_raster(weights_path)
-    exclusion = _load_raster(exclusion_path).astype(bool)
+    weights = _load_raster(weights_path / f"binary_mask_20{year}.tif")
+    exclusion = _load_raster(exclusion_path / f"sa2_weighted_mask_20{year}").astype(bool)
     raw = _load_raster(raw_raster_path)
  
     if raw.shape != weights.shape:
@@ -117,7 +118,7 @@ def compute_weighting(
     if check_conservation:
         _check_conservation(raw, redistributed, nodata=nodata)
 
-    out_path = OUTPUT_DIR/f"{out_name}.tif"
+    out_path = OUTPUT_DIR/f"{out_name}_20{year}.tif"
     write_cog(redistributed, out_path, grid=grid, nodata=nodata,
               band_name=out_name)
  
@@ -133,9 +134,13 @@ def compute_weighting(
 if __name__ == "__main__":
     import sys
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+
+    if len(sys.argv) < 2:
+        print("Error: provide target year.")
+        sys.exit(0)
+    year = sys.argv[1]
+    raw_path = Path(f"data/outputs/rasters/erp_sa2_20{year}.tif")
+    out_name = "erp_weighted"
  
-    raw_path = "data/outputs/rasters/erp_sa2_2025.tif"
-    out_name = "erp_weighted_2025"
- 
-    out = compute_weighting(raw_path, out_name)
+    out = compute_weighting(raw_path, out_name, year=year)
     print(f"\nDone → {out}")

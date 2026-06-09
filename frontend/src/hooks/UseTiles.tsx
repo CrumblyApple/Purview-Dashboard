@@ -12,7 +12,6 @@ interface CogDataset {
 
 interface TilesResult {
   tileUrl: string | null;
-  colourmap: string;
   minZoom: number;
   maxZoom: number;
 }
@@ -46,7 +45,6 @@ export function useTiles(): TilesResult {
 
   return {
     tileUrl,
-    colourmap,
     minZoom: dataset?.minzoom ?? 0,
     maxZoom: dataset?.maxzoom ?? 9,
   };

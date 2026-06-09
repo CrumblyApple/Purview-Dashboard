@@ -50,15 +50,13 @@ const styles = {
     position:            "absolute" as const,
     bottom:              20,
     right:               20,
-    width:               240,
-    background:          "rgba(10, 12, 16, 0.88)",
+    width:               "12vw",
+    background:          "rgba(10, 12, 16, 0.6)",
     backdropFilter:      "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",
-    border:              "1px solid rgba(255,255,255,0.08)",
     borderRadius:        4,
     fontFamily:          "'DM Mono', 'Fira Mono', monospace",
     color:               "#c8cdd6",
-    boxShadow:           "0 8px 32px rgba(0,0,0,0.48)",
     overflow:            "hidden" as const,
   },
  
@@ -75,13 +73,13 @@ const styles = {
     fontWeight:    600,
     letterSpacing: "0.14em",
     textTransform: "uppercase" as const,
-    color:         "rgba(200,205,214,0.4)",
+    color:         "rgba(255, 255, 255, 0.4)",
   },
  
   closeBtn: {
     background:  "none",
     border:      "none",
-    color:       "rgba(200,205,214,0.35)",
+    color:       "rgba(255, 255, 255, 0.35)",
     cursor:      "pointer",
     fontSize:    14,
     lineHeight:  1,
@@ -183,7 +181,7 @@ const styles = {
  
   errorText: {
     fontSize: 11,
-    color:    "rgba(220,80,80,0.8)",
+    color:    "rgba(255, 111, 111, 0.8)",
   },
  
   nodata: {

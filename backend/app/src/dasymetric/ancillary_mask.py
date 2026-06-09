@@ -22,8 +22,8 @@ log = logging.getLogger(__name__)
 OUTPUT_DIR = Path("data/outputs/masks")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
  
-GPKG_PATH = Path("data/raw/asgs_3/ASGS_2021_Main_Structure_GDA2020.gpkg")
-GNAF_PATH = Path("data/raw/gnaf/gnaf_core.parquet")
+GPKG_PATH = Path("data/raw/asgs_3/ASGS_2021_Main_Structure_GDA2020.gpkg") # To be replaced with dynamic lookup
+GNAF_PATH = Path("data/raw/gnaf")
 
 # Mesh block categories that can safely be excluded
 MB_EXCLUDED: set[str] = {
@@ -58,9 +58,10 @@ def _load_mesh_blocks(gpkg_path: Path) -> gpd.GeoDataFrame:
 def build_binary_mask(
     gpkg_path: Path = GPKG_PATH,
     grid: GridDef = NATIONAL_GRID,
+    year: int = 25,
     force: bool = False,                # Forcibly make new file
 ) -> np.ndarray:
-    out_path = OUTPUT_DIR / "binary_mask.tif"
+    out_path = OUTPUT_DIR / f"binary_mask_20{year}.tif"
     if out_path.exists() and not force:
         with rasterio.open(out_path) as src:
             return src.read(1)
@@ -178,9 +179,10 @@ def build_weighted_mask(
     gpkg_path: Path = GPKG_PATH,
     gnaf_path: Path = GNAF_PATH,
     grid: GridDef = NATIONAL_GRID,
+    year: int = 25,
     force: bool = False
 ) -> np.ndarray:
-    out_path = OUTPUT_DIR/"sa2_weighted_mask.tif"
+    out_path = OUTPUT_DIR/f"sa2_weighted_mask_20{year}.tif"
     if out_path.exists() and not force:
         log.info("Loading cached mask")
         with rasterio.open(out_path) as src:
@@ -188,10 +190,10 @@ def build_weighted_mask(
  
     # Loading inputs
     mb_gdf = _load_mesh_blocks(gpkg_path)
-    b_mask = build_binary_mask(gpkg_path, grid, force=force)
+    b_mask = build_binary_mask(gpkg_path, grid, year, force=force)
     sa2_ids, _ = _build_sa2_id_raster(gpkg_path, grid)
     mb_fallback = _build_mesh_block_fallback(mb_gdf, grid)
-    lons, lats   = _load_gnaf(gnaf_path)
+    lons, lats   = _load_gnaf(gnaf_path / f"gnaf_core_20{year}")
     gnaf_counts  = _bin_gnaf(lons, lats, grid)
 
     # Binary exclusion mask on GNAF, MB_Fallback
@@ -227,8 +229,6 @@ def build_weighted_mask(
 
     fractions = flat_fractions.reshape(grid.height, grid.width) # Back into raster
 
-
-
     # --- Diagnostics ---
     n_sa2s_total    = len(np.unique(flat_ids[flat_ids > 0]))
     n_sa2s_gnaf     = int((sa2_gnaf_totals[1:] > 0).sum())
@@ -247,8 +247,6 @@ def build_weighted_mask(
         sample_sum = fractions[sa2_ids == sid].sum()
         log.info("Sample SA2 fraction sum: %.6f (should be 1.0)", sample_sum)
  
-
-
     write_cog(fractions, out_path, grid=grid, nodata=None, band_name="sa2_weight_fraction")
     log.info("Weight fractions written → %s", out_path)
     return fractions
@@ -259,13 +257,18 @@ if __name__ == "__main__":
     import sys
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
  
+    if len(sys.argv) < 2:
+        print("Error: provide target year.")
+        sys.exit(0)
+    year = sys.argv[1]
+
     force = "--force" in sys.argv
  
-    excl = build_binary_mask(force=force)
-    fracs = build_weighted_mask(force=force)
+    excl = build_binary_mask(year=year, force=force)
+    fracs = build_weighted_mask(year=year, force=force)
  
-    print(f"\nExclusion mask:   {excl.sum():,} pixels excluded"
+    print(f"\nExclusion mask: {excl.sum():,} pixels excluded"
           f" ({100*excl.sum()/excl.size:.1f}%)")
     print(f"Weight fractions: min={fracs[fracs>0].min():.6f}"
           f"  max={fracs.max():.6f}")
-    print(f"                  non-zero pixels: {(fracs>0).sum():,}")
+    print(f"non-zero pixels: {(fracs>0).sum():,}")

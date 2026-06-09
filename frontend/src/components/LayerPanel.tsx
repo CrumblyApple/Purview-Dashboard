@@ -10,19 +10,18 @@ import type { IndicatorSlug } from "../config/Indicators";
 const styles = {
   panel: {
     position:        "absolute" as const,
-    top:             20,
-    right:           20,
-    width:           220,
+    top:             0,
+    left:           0,
+    width:           "15vw",
+    height:           "45vh",
     background:      "rgba(10, 12, 16, 0.82)",
     backdropFilter:  "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",
-    border:          "1px solid rgba(255,255,255,0.08)",
     borderRadius:    4,
     padding:         "16px 14px",
     fontFamily:      "'DM Mono', 'Fira Mono', monospace",
     color:           "#c8cdd6",
     userSelect:      "none" as const,
-    boxShadow:       "0 8px 32px rgba(0,0,0,0.48)",
   },
  
   section: {
@@ -201,21 +200,15 @@ export default function LayerPanel() {
   const {
     activeIndicator,
     activeYear,
-    opacity,
     setIndicator,
     setYear,
-    setOpacity,
   } = useIndicatorState();
  
   const handleYearChange = useCallback(
     (v: number) => setYear(String(v)),
     [setYear],
   );
- 
-  const handleOpacityChange = useCallback(
-    (v: number) => setOpacity(v / 100),
-    [setOpacity],
-  );
+
  
   const yearMin = Number(YEARS[0]);
   const yearMax = Number(YEARS[YEARS.length - 1]);
@@ -251,23 +244,6 @@ export default function LayerPanel() {
           onChange={handleYearChange}
         />
       </div>
- 
-      <div style={styles.divider} />
- 
-      {/* Opacity slider */}
-      <div style={styles.section}>
-        <span style={styles.sectionLabel}>Display</span>
-        <SliderRow
-          label="Opacity"
-          value={Math.round(opacity * 100)}
-          min={0}
-          max={100}
-          step={5}
-          displayValue={`${Math.round(opacity * 100)}%`}
-          onChange={handleOpacityChange}
-        />
-      </div>
- 
     </div>
   );
 }

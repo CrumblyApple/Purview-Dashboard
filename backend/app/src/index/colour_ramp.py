@@ -97,12 +97,12 @@ def ColorMapParams(
 
 CUSTOM_COLOUR_RAMPS: dict[str, list[tuple[float, tuple[int, int, int, int]]]] = {
     "erp": [
-        (0.00, (10,  12,  16,  255)),     # transparent — zero population
-        (0.05, (20,  10,  40,  255)),   # dark purple — very low
-        (0.20, (80,  20,  120, 255)),   # purple
-        (0.45, (180, 50,  50,  255)),   # red
-        (0.70, (230, 120, 20,  255)),   # orange
-        (1.00, (255, 240, 100, 255)),   # bright yellow — peak density
+        (0.00, (255, 255, 255, 255)),
+        (0.10, (155, 232, 221, 255)),
+        (0.40, (106, 187, 204, 255)),
+        (0.70, (95, 152, 217, 255)),
+        (0.90, (85, 100, 201, 255)),
+        (1.00, (10, 5, 59, 255)),
     ],
     "unemployment_rate": [
         (0.00, (26,  152, 80,  255)),   # green — low unemployment

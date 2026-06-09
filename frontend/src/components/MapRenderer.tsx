@@ -1,10 +1,11 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import DeckGL from "@deck.gl/react";
 import { TileLayer } from "@deck.gl/geo-layers";
 import type { GeoBoundingBox } from "@deck.gl/geo-layers/";
 import { BitmapLayer } from "@deck.gl/layers";
 import type { MapViewState, PickingInfo } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { WebMercatorViewport } from '@deck.gl/core';
 
 import { IndicatorSlug } from "../config/Indicators";
 
@@ -32,6 +33,18 @@ const INIT_VIEW = {
   bearing: 0,
 };
 
+const BOUNDS = {
+  minLat: -45,
+  maxLat: -5,
+  minLng: 95,
+  maxLng: 170,
+};
+const MIN_ZOOM      = 3.5;
+const MAX_ZOOM      = 9;
+const HOME_LONGITUDE = 132.5;
+const HOME_LATITUDE  = -27.5;
+
+
 const BASEMAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json";
 const LABELS_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
@@ -44,6 +57,7 @@ export default function MapView({
   onPixelClick,
 }: MapViewProps) {
   const [viewState, setViewState] = useState<MapViewState>(INIT_VIEW);
+  const prevLngRef = useRef<number>(HOME_LONGITUDE);
 
   useEffect(() => {
     if (!tileUrl) return;
@@ -120,13 +134,51 @@ export default function MapView({
     [],
   );
 
+  const clampViewState = (vs: MapViewState) => {
+    const viewport = new WebMercatorViewport(vs);
+
+    // Get current viewport edges
+    const [minLng, minLat, maxLng, maxLat] = viewport.getBounds();
+  
+    // Calculate overshoot on each side
+    const lngOvershootMin = Math.max(0, BOUNDS.minLng - minLng);
+    const lngOvershootMax = Math.max(0, maxLng - BOUNDS.maxLng);
+    const latOvershootMin = Math.max(0, BOUNDS.minLat - minLat);
+    const latOvershootMax = Math.max(0, maxLat - BOUNDS.maxLat);
+
+    return {
+      ...vs,
+      longitude: vs.longitude + lngOvershootMin - lngOvershootMax,
+      latitude:  vs.latitude  + latOvershootMin - latOvershootMax,
+    };
+  };
+
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <DeckGL
         viewState={viewState}
-        onViewStateChange={({ viewState: vs }) =>
-          setViewState(vs as MapViewState)
-        }
+        onViewStateChange={({ viewState: vs }) => {
+          const newVs = vs as MapViewState;
+          const clampedZoom = Math.max(newVs.zoom ?? 4, MIN_ZOOM);
+          const atMinZoom = clampedZoom <= MIN_ZOOM;
+        
+          if (atMinZoom) {
+            prevLngRef.current = HOME_LONGITUDE;
+            setViewState({ ...newVs, zoom: clampedZoom, longitude: HOME_LONGITUDE, latitude: HOME_LATITUDE });
+            return;
+          }
+        
+          // Detect and undo antimeridian wrap
+          let lng = newVs.longitude;
+          const delta = lng - prevLngRef.current;
+          if (delta > 180)  lng -= 360;
+          if (delta < -180) lng += 360;
+          prevLngRef.current = lng;
+        
+          const unwrappedVs = { ...newVs, longitude: lng };
+          const clamped = clampViewState(unwrappedVs);
+          setViewState({ ...clamped, zoom: clampedZoom });
+        }}
         controller={{
           scrollZoom: {
             smooth: false,
