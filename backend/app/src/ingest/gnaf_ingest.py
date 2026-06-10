@@ -65,10 +65,6 @@ def convert(year: int, raw_dir: Path = GNAF_RAW_DIR) -> pd.DataFrame:
 
     GNAF_OUT.parent.mkdir(parents=True, exist_ok=True)
 
-    ###################################################
-    df.to_csv(f"data/raw/gnaf/gnaf_20{year}.csv", index=False)
-    ###################################################
-
     df.to_parquet(GNAF_OUT / f"gnaf_core_20{year}.parquet", index=False)
     return df
 

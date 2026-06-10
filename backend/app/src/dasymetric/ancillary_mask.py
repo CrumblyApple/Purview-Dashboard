@@ -193,7 +193,7 @@ def build_weighted_mask(
     b_mask = build_binary_mask(gpkg_path, grid, year, force=force)
     sa2_ids, _ = _build_sa2_id_raster(gpkg_path, grid)
     mb_fallback = _build_mesh_block_fallback(mb_gdf, grid)
-    lons, lats   = _load_gnaf(gnaf_path / f"gnaf_core_20{year}")
+    lons, lats   = _load_gnaf(gnaf_path / f"gnaf_core_20{year}.parquet")
     gnaf_counts  = _bin_gnaf(lons, lats, grid)
 
     # Binary exclusion mask on GNAF, MB_Fallback
@@ -218,13 +218,27 @@ def build_weighted_mask(
     sa2_mb_totals = np.bincount(flat_ids, weights=flat_mb, minlength=n)
     pixel_sa2_mb_total = sa2_mb_totals[flat_ids]
 
+    gnaf_fractions = np.divide(
+        flat_gnaf,
+        pixel_sa2_gnaf_total,
+        out=np.zeros_like(flat_gnaf),
+        where=pixel_sa2_gnaf_total > 0,
+    )
+
+    mb_fractions = np.divide(
+        flat_mb,
+        pixel_sa2_mb_total,
+        out=np.zeros_like(flat_mb),
+        where=pixel_sa2_mb_total > 0,
+    )
+
     # Calculate fractional weights: 
     # To ensure population numbers remain unchanged, all fractions for a single SA2 sum to 1
     # This is achieved by dividing each raw score by the total sum of SA2
     flat_fractions = np.where(
         gnaf_covered,
-        np.where(pixel_sa2_gnaf_total > 0, flat_gnaf / pixel_sa2_gnaf_total, 0.0), # GNAF
-        np.where(pixel_sa2_mb_total > 0, flat_mb  / pixel_sa2_mb_total, 0.0), # MB fallback
+        gnaf_fractions, # GNAF
+        mb_fractions, # MB fallback
     ).astype(np.float32)
 
     fractions = flat_fractions.reshape(grid.height, grid.width) # Back into raster

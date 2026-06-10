@@ -73,8 +73,8 @@ export default function App() {
           width: "60vw", 
           height: "75vh", 
           position: "relative", 
-          background: "#c8cccf",
-          border: "4px solid #c8cccf",
+          background: "#d5d8db",
+          border: "4px solid #d5d8db",
           borderRadius: 4,
         }}>
           <MapView

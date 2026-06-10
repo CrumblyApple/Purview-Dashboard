@@ -93,12 +93,12 @@ def compute_weighting(
     year: int = 25,
     nodata: float = np.nan,
     check_conservation: bool = True
-) -> np.ndarray:
+) -> Path:
     for p in (weights_path / f"sa2_weighted_mask_20{year}.tif", exclusion_path / f"binary_mask_20{year}.tif"):
         if not p.exists(): raise FileNotFoundError(f"{p} not found.")
  
-    weights = _load_raster(weights_path / f"binary_mask_20{year}.tif")
-    exclusion = _load_raster(exclusion_path / f"sa2_weighted_mask_20{year}").astype(bool)
+    weights = _load_raster(weights_path / f"sa2_weighted_mask_20{year}.tif")
+    exclusion = _load_raster(exclusion_path / f"binary_mask_20{year}.tif").astype(bool)
     raw = _load_raster(raw_raster_path)
  
     if raw.shape != weights.shape:

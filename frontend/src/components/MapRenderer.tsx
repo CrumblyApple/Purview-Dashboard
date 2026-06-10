@@ -21,7 +21,6 @@ interface MapViewProps {
   minZoom?: number;
   maxZoom?: number;
   indicator?: IndicatorSlug;
-  opacity?: number;
   onPixelClick?: (info: PixelClickInfo) => void;
 }
 
@@ -48,17 +47,108 @@ const HOME_LATITUDE  = -27.5;
 const BASEMAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json";
 const LABELS_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
+
+const makeTileLayer = (
+  id:      string,
+  urlRef:  React.RefObject<string | null>,
+  minZoom: number,
+  maxZoom: number,
+) =>
+  new TileLayer({
+    id,
+    getTileData: async ({ index: { x, y, z }, signal }) => {
+      const url = urlRef.current
+        ?.replace("{z}", z.toString())
+        .replace("{x}", x.toString())
+        .replace("{y}", y.toString());
+      if (!url) return null;
+      const res = await fetch(url, { signal });
+      if (!res.ok) return null;
+      return createImageBitmap(await res.blob());
+    },
+    extent: [112.9, -43.7, 153.7, -9.9],
+    tileSize: 256,
+    minZoom,
+    maxZoom,
+    refinementStrategy: "best-available",
+    maxCacheSize:       1000,
+    renderSubLayers: (props) => {
+      const { west, south, east, north } = props.tile.bbox as GeoBoundingBox;
+
+      return new BitmapLayer(props, {
+        data:             undefined,
+        image:            props.data,
+        bounds:           [west, south, east, north],
+        transparentColor: [0, 0, 0, 0],
+        textureParameters: { minFilter: "nearest", magFilter: "nearest" },
+      });
+    },
+    onTileError: (err) => console.warn("Tile load error:", err),
+  });
+
+
 export default function MapView({
   tileUrl,
   minZoom = 0,
   maxZoom = 9,
   indicator = "erp",
-  opacity = 0.85,
   onPixelClick,
 }: MapViewProps) {
   const [viewState, setViewState] = useState<MapViewState>(INIT_VIEW);
   const prevLngRef = useRef<number>(HOME_LONGITUDE);
 
+  const urlA = useRef<string | null>(null);
+  const urlB = useRef<string | null>(null);
+  const layerA = useRef(makeTileLayer(`tiles-A-${indicator}`, urlA, minZoom, maxZoom));
+  const layerB = useRef(makeTileLayer(`tiles-B-${indicator}`, urlB, minZoom, maxZoom));
+  const activeSlot = useRef<"A" | "B">("A");
+  const [, forceRender] = useState(0);
+
+  const slotAVersion = useRef(0);
+  const slotBVersion = useRef(0);
+  
+  useEffect(() => {
+    if (!tileUrl) return;
+  
+    if (activeSlot.current === "A") {
+      const isNewUrl = urlB.current !== tileUrl;
+      urlB.current = tileUrl;
+      if (isNewUrl) slotBVersion.current += 1;
+      activeSlot.current = "B";
+    } else {
+      const isNewUrl = urlA.current !== tileUrl;
+      urlA.current = tileUrl;
+      if (isNewUrl) slotAVersion.current += 1;
+      activeSlot.current = "A";
+    }
+  
+    forceRender(n => n + 1);
+  }, [tileUrl]);
+ 
+  useEffect(() => {
+    layerA.current = makeTileLayer(`tiles-A-${indicator}`, urlA, minZoom, maxZoom);
+    layerB.current = makeTileLayer(`tiles-B-${indicator}`, urlB, minZoom, maxZoom);
+    urlA.current   = null;
+    urlB.current   = null;
+    activeSlot.current = "A";
+    forceRender(n => n + 1);
+  }, [indicator]);
+
+  const layerAClone = layerA.current.clone({
+    id:      `tiles-A-${indicator}-${slotAVersion.current}`,
+    opacity: activeSlot.current === "A" ? 1.0 : 0.3,
+  });
+  
+  const layerBClone = layerB.current.clone({
+    id:      `tiles-B-${indicator}-${slotBVersion.current}`,
+    opacity: activeSlot.current === "B" ? 1.0 : 0.3,
+  });
+  
+  // Active slot last = renders on top
+  const layers = activeSlot.current === "A"
+    ? [layerBClone, layerAClone]
+    : [layerAClone, layerBClone];
+  
   useEffect(() => {
     if (!tileUrl) return;
 
@@ -82,42 +172,6 @@ export default function MapView({
       img.src = targetUrl;
     });
   }, [tileUrl]);
-
-  const tileLayer = useMemo(() => {
-    if (!tileUrl) return null;
-
-    return new TileLayer({
-      id: `indicator-tiles-${indicator}`,
-      data: tileUrl,
-
-      extent: [112.9, -43.7, 153.7, -9.9],
-
-      tileSize: 256,
-      minZoom,
-      maxZoom,
-
-      renderSubLayers: (props) => {
-        const { west, south, east, north } = props.tile.bbox as GeoBoundingBox;
-        return new BitmapLayer(props, {
-          data: undefined,
-          image: props.data,
-          bounds: [west, south, east, north],
-          opacity,
-          transparentColor: [0, 0, 0, 0],
-          textureParameters: {
-            minFilter:  "nearest",
-            magFilter:  "nearest",
-          },
-        });
-      },
-
-      refinementStrategy: "best-available",
-
-      onTileError: (err) => {
-        console.warn("Tile load error:", err);
-      },
-    });
-  }, [tileUrl, indicator, opacity, minZoom, maxZoom]);
 
   const handleClick = useCallback(
     (info: PickingInfo) => {
@@ -187,7 +241,7 @@ export default function MapView({
           dragPan: true,
           inertia: 250
         }}
-        layers={tileLayer ? [tileLayer] : []}
+        layers={layers}
         onClick={handleClick}
         getCursor={getCursor}
         style={{ position: "absolute", inset: "0" }}
