@@ -83,7 +83,6 @@ export default function App() {
             maxZoom={maxZoom}
             onPixelClick={setClickedPixel}
           />
-          <InspectPanel/>
         </div>
 
         <div style={{ 
@@ -93,6 +92,7 @@ export default function App() {
           borderRadius: 4,
         }}>
           <LayerPanel/>
+          <InspectPanel/>
         </div>
       </div>
 

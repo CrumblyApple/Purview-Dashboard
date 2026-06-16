@@ -48,10 +48,10 @@ function formatCoord(v: number, decimals = 4): string {
 const styles = {
   panel: {
     position:            "absolute" as const,
-    bottom:              20,
-    right:               20,
-    width:               "12vw",
-    background:          "rgba(10, 12, 16, 0.6)",
+    top:                 "calc(30vh + 16px)",
+    right:               0,
+    width:               "15vw",
+    background:          "rgba(10, 12, 16, 0.8)",
     backdropFilter:      "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",
     borderRadius:        4,

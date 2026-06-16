@@ -9,13 +9,28 @@ from pathlib import Path
 from fastapi.responses import Response
 from rio_tiler.io import COGReader
 import numpy as np
+import rasterio
+from rasterio.transform import rowcol
+from contextlib import asynccontextmanager
 
 from .src.index.colour_ramp import register_colourmaps
+from .src.dasymetric.ancillary_mask import _build_sa2_id_raster
 
 from app.routers import health
 
 LOG_SCALE_INDICATORS = {"erp", "housing_price"}
 DATA_DIR = Path(__file__).parent.parent.parent / "data" / "outputs"
+
+SA2_ID_RASTER: np.ndarray | None = None
+SA2_ID_TO_CODE: dict[int, str] = {}
+SA2_ID_TRANSFORM = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global SA2_ID_RASTER, SA2_ID_TO_CODE, SA2_ID_TRANSFORM
+    SA2_ID_RASTER, SA2_ID_TO_CODE, SA2_ID_TRANSFORM = _build_sa2_id_raster()
+    print(f"Serving data from: {DATA_DIR.resolve()}")
+    yield
 
 updated_cmap = register_colourmaps()
 ColorMapParams = create_colormap_dependency(updated_cmap)
@@ -58,6 +73,17 @@ def _rescale_range(indicator: str, b1) -> tuple[float, float]:
     if indicator in LOG_SCALE_INDICATORS:
         return 0.0, float(np.log1p(raw_max))
     return 0.0, raw_max
+
+def _lookup_sa2(lat: float, lon: float) -> dict:
+    if SA2_ID_RASTER is None:
+        return {"sa2_code": None, "sa2_name": None}
+    row, col = rowcol(SA2_ID_TRANSFORM, lon, lat)
+    if not (0 <= row < SA2_ID_RASTER.shape[0] and 0 <= col < SA2_ID_RASTER.shape[1]):
+        return {"sa2_code": None, "sa2_name": None}
+    sa2_id = SA2_ID_RASTER[row, col]
+    if sa2_id == 0:
+        return {"sa2_code": None, "sa2_name": None}
+    return {"sa2_code": SA2_ID_TO_CODE.get(int(sa2_id)), "sa2_name": None}
 
 # ENDPOINTS
 '''
@@ -122,6 +148,31 @@ async def get_tile(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return Response(content, media_type="image/png")
+
+@app.get("/api/stats")
+async def get_pixel_stats(lat: float, lon: float, year: str) -> dict:
+    indicators = ["erp", "unemployment_rate", "seifa", "housing_price", "liveability"]
+    result: dict = {"lat": lat, "lon": lon, "sa2_code": None, "sa2_name": None}
+
+    for indicator in indicators:
+        cog_path = DATA_DIR / "rasters" / "dasymetric" / f"{indicator}_weighted_{year}.tif"
+        if not cog_path.exists():
+            result[indicator] = None
+            continue
+
+        with rasterio.open(cog_path) as src:
+            row, col = rowcol(src.transform, lon, lat)
+            if 0 <= row < src.height and 0 <= col < src.width:
+                value = src.read(1, window=((row, row+1), (col, col+1)))[0, 0]
+                result[indicator] = None if value <= -9000.0 else float(value)
+            else:
+                result[indicator] = None
+
+    # SA2 lookup — needs the SA2 boundary GeoPackage, point-in-polygon
+    sa2_info = _lookup_sa2(lat, lon)
+    result.update(sa2_info)
+
+    return result
 
 app.mount(
     "/data",

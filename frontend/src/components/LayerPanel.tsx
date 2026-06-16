@@ -13,7 +13,7 @@ const styles = {
     top:             0,
     left:           0,
     width:           "15vw",
-    height:           "45vh",
+    height:           "30vh",
     background:      "rgba(10, 12, 16, 0.82)",
     backdropFilter:  "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",
